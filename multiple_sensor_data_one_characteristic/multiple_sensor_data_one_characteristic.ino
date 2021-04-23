@@ -195,6 +195,35 @@ void loop() {
     accel_sensor_value_y = analogRead(32); // for universal, y is 35
     accel_sensor_value_z = analogRead(35); //for universal, z is 34
 
+    float accel, total, threshold, hysteresis;
+    int count, stepcount;
+    bool state, laststate;
+    accel = sqrt( sq(accel_sensor_value_x) + sq(accel_sensor_value_y) + sq(accel_sensor_value_z) );
+
+    // 閾値設定
+    if (count < 100) {
+      total += accel;
+      count++;
+    } else {
+      threshold = total / count;
+      hysteresis = threshold / 10;
+      total = 0;
+      count = 0;
+    }
+    //閾値判定
+    if (accel > (threshold + hysteresis)) {
+      state = true;
+    } else if (accel < (threshold - hysteresis)) {
+      state = false;
+    }
+    //歩数カウント
+    if (laststate == false && state == true) {
+      stepcount++;
+      laststate = state;
+    } else if (laststate == true && state == false) {
+      laststate = state;
+    }
+
     multiSensorData.values[0] = accel_sensor_value_x;
     multiSensorData.values[1] = accel_sensor_value_y;
     multiSensorData.values[2] = accel_sensor_value_z;
@@ -204,7 +233,8 @@ void loop() {
     //multiSensorData.values[5] = int(bme.gas_resistance / 1000.0);
     //multiSensorData.values[6] = int(bme.pressure / 1000.0); // hectopascalではなく1000で割っている
     multiSensorData.values[7] = int(ambientTemp);
-    multiSensorData.values[8] = int(objectTemp); 
+    multiSensorData.values[8] = int(objectTemp);
+    multiSensorData.values[9] = stepcount;
     multiSensorDataCharacteristic->setValue( multiSensorData.bytes, sizeof multiSensorData.bytes );
     Serial.println(sizeof multiSensorData.bytes);
     for ( int i = 0; i < sizeof multiSensorData.bytes; i++ )
